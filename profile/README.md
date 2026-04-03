@@ -70,7 +70,7 @@ We're looking for **design partners** — agencies and marketing teams who want 
 
 Interested in joining the team? We're hiring engineers who want to build AI products that solve real business problems.
 
-**Yuri Papenov** — y@palitra.io
+**Yuriy Papenov** — y@palitra.io
 **Anton Golosnichenko** — anton@palitra.io
 
 ## License
