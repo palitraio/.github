@@ -1,0 +1,52 @@
+name: GHCR retention
+description: >-
+  Prune old GHCR releases for the calling repository's own package, keeping the
+  N most recent whole releases (current + N-1 for rollback).
+
+# This is a composite action, not a reusable workflow, and that is the whole point.
+# A reusable workflow runs as a JOB of its own: GitHub bills every job rounded UP to
+# a whole minute, and this work takes about twelve seconds. Across palitra-backend,
+# palitra-frontend and license-server that was ~18 billed minutes per three days for
+# under four minutes of work, against a 2000-minute monthly account budget.
+#
+# A composite action runs as STEPS of the job that calls it, so on a job that is
+# already running it costs its twelve seconds and nothing more. The logic is still
+# defined once, here.
+#
+# The caller must grant `packages: write` on the job that uses this — a composite
+# action cannot request permissions of its own. Every current caller is the image
+# build job, which already holds it to push the image.
+
+inputs:
+  keep:
+    description: "Whole releases to retain (current + N-1 for rollback). Minimum 2."
+    required: false
+    default: "3"
+  dry-run:
+    description: "Log deletions without performing them. Default true (fail-safe)."
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Guard keep >= 2
+      shell: bash
+      env:
+        KEEP: ${{ inputs.keep }}
+      run: |
+        set -euo pipefail
+        if [ "$KEEP" -lt 2 ]; then
+          echo "::error::keep must be >= 2 to preserve rollback capacity (got $KEEP)"
+          exit 1
+        fi
+    - name: Prune
+      uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
+      with:
+        owner: ${{ github.repository_owner }}
+        package: ${{ github.event.repository.name }}
+        keep-n-tagged: ${{ inputs.keep }}
+        delete-untagged: true
+        delete-orphaned-images: true
+        validate: true
+        dry-run: ${{ inputs.dry-run }}
