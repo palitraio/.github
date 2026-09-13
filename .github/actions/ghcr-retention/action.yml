@@ -1,7 +1,7 @@
 name: GHCR retention
 description: >-
-  Prune old GHCR releases for the calling repository's own package, keeping the
-  N most recent whole releases (current + N-1 for rollback).
+  Prune old GHCR releases for one package — the calling repository's own by
+  default — keeping the N most recent whole releases (current + N-1 for rollback).
 
 # This is a composite action, not a reusable workflow, and that is the whole point.
 # A reusable workflow runs as a JOB of its own: GitHub bills every job rounded UP to
@@ -18,6 +18,13 @@ description: >-
 # build job, which already holds it to push the image.
 
 inputs:
+  package:
+    description: >-
+      Package to prune. Defaults to the calling repository's name; set it when a
+      repository publishes a second image (palitra-backend also pushes
+      palitra-sandbox).
+    required: false
+    default: ""
   keep:
     description: "Whole releases to retain (current + N-1 for rollback). Minimum 2."
     required: false
@@ -44,7 +51,7 @@ runs:
       uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
       with:
         owner: ${{ github.repository_owner }}
-        package: ${{ github.event.repository.name }}
+        package: ${{ inputs.package || github.event.repository.name }}
         keep-n-tagged: ${{ inputs.keep }}
         delete-untagged: true
         delete-orphaned-images: true
